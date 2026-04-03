@@ -14,16 +14,177 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      grievance_timeline: {
+        Row: {
+          created_at: string
+          created_by: string
+          grievance_id: string
+          id: string
+          message: string
+          status: Database["public"]["Enums"]["grievance_status"]
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          grievance_id: string
+          id?: string
+          message: string
+          status: Database["public"]["Enums"]["grievance_status"]
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          grievance_id?: string
+          id?: string
+          message?: string
+          status?: Database["public"]["Enums"]["grievance_status"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "grievance_timeline_grievance_id_fkey"
+            columns: ["grievance_id"]
+            isOneToOne: false
+            referencedRelation: "grievances"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      grievances: {
+        Row: {
+          assigned_officer_id: string | null
+          category: Database["public"]["Enums"]["grievance_category"]
+          citizen_id: string
+          created_at: string
+          department: string | null
+          description: string
+          id: string
+          is_anonymous: boolean | null
+          location: string | null
+          priority: Database["public"]["Enums"]["grievance_priority"]
+          satisfaction: number | null
+          status: Database["public"]["Enums"]["grievance_status"]
+          ticket_id: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          assigned_officer_id?: string | null
+          category?: Database["public"]["Enums"]["grievance_category"]
+          citizen_id: string
+          created_at?: string
+          department?: string | null
+          description: string
+          id?: string
+          is_anonymous?: boolean | null
+          location?: string | null
+          priority?: Database["public"]["Enums"]["grievance_priority"]
+          satisfaction?: number | null
+          status?: Database["public"]["Enums"]["grievance_status"]
+          ticket_id: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          assigned_officer_id?: string | null
+          category?: Database["public"]["Enums"]["grievance_category"]
+          citizen_id?: string
+          created_at?: string
+          department?: string | null
+          description?: string
+          id?: string
+          is_anonymous?: boolean | null
+          location?: string | null
+          priority?: Database["public"]["Enums"]["grievance_priority"]
+          satisfaction?: number | null
+          status?: Database["public"]["Enums"]["grievance_status"]
+          ticket_id?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string
+          department: string | null
+          full_name: string | null
+          id: string
+          phone: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string
+          department?: string | null
+          full_name?: string | null
+          id?: string
+          phone?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string
+          department?: string | null
+          full_name?: string | null
+          id?: string
+          phone?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "citizen" | "admin" | "officer"
+      grievance_category:
+        | "water"
+        | "electricity"
+        | "roads"
+        | "sanitation"
+        | "public_safety"
+        | "education"
+        | "healthcare"
+        | "other"
+      grievance_priority: "low" | "medium" | "high" | "critical"
+      grievance_status:
+        | "submitted"
+        | "under_review"
+        | "in_progress"
+        | "resolved"
+        | "closed"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +311,26 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["citizen", "admin", "officer"],
+      grievance_category: [
+        "water",
+        "electricity",
+        "roads",
+        "sanitation",
+        "public_safety",
+        "education",
+        "healthcare",
+        "other",
+      ],
+      grievance_priority: ["low", "medium", "high", "critical"],
+      grievance_status: [
+        "submitted",
+        "under_review",
+        "in_progress",
+        "resolved",
+        "closed",
+      ],
+    },
   },
 } as const
