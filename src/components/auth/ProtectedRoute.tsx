@@ -1,16 +1,17 @@
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import type { Database } from '@/integrations/supabase/types';
-
-type AppRole = Database['public']['Enums']['app_role'];
+import type { AppRole } from '@/lib/local-auth';
+import { getDefaultRouteForRoles, hasPermission, type FeaturePermission } from '@/lib/rbac';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
   requiredRole?: AppRole;
+  requiredRoles?: AppRole[];
+  requiredPermission?: FeaturePermission;
 }
 
-export default function ProtectedRoute({ children, requiredRole }: ProtectedRouteProps) {
-  const { user, loading, hasRole } = useAuth();
+export default function ProtectedRoute({ children, requiredRole, requiredRoles, requiredPermission }: ProtectedRouteProps) {
+  const { user, loading, hasRole, roles } = useAuth();
 
   if (loading) {
     return (
@@ -21,7 +22,18 @@ export default function ProtectedRoute({ children, requiredRole }: ProtectedRout
   }
 
   if (!user) return <Navigate to="/auth" replace />;
-  if (requiredRole && !hasRole(requiredRole)) return <Navigate to="/citizen" replace />;
+
+  if (requiredRole && !hasRole(requiredRole)) {
+    return <Navigate to={getDefaultRouteForRoles(roles)} replace />;
+  }
+
+  if (requiredRoles && !requiredRoles.some((role) => hasRole(role))) {
+    return <Navigate to={getDefaultRouteForRoles(roles)} replace />;
+  }
+
+  if (requiredPermission && !hasPermission(roles, requiredPermission)) {
+    return <Navigate to={getDefaultRouteForRoles(roles)} replace />;
+  }
 
   return <>{children}</>;
 }

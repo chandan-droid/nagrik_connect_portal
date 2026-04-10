@@ -1,16 +1,24 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
-import { supabase } from '@/integrations/supabase/client';
-import type { User, Session } from '@supabase/supabase-js';
-import type { Database } from '@/integrations/supabase/types';
+import {
+  clearLocalSession,
+  getLocalSession,
+  signInLocal,
+  signUpLocal,
+  type AppRole,
+  type LocalProfile,
+  type LocalUser,
+} from '@/lib/local-auth';
 
-type AppRole = Database['public']['Enums']['app_role'];
+type Session = { userId: string } | null;
 
 interface AuthContextType {
-  user: User | null;
+  user: LocalUser | null;
   session: Session | null;
-  profile: { full_name: string | null; phone: string | null; department: string | null } | null;
+  profile: LocalProfile | null;
   roles: AppRole[];
   loading: boolean;
+  signIn: (params: { email: string; password: string; role?: AppRole }) => Promise<{ error: string | null }>;
+  signUp: (params: { email: string; password: string; fullName: string; phone?: string }) => Promise<{ error: string | null }>;
   signOut: () => Promise<void>;
   hasRole: (role: AppRole) => boolean;
 }
@@ -21,58 +29,49 @@ const AuthContext = createContext<AuthContextType>({
   profile: null,
   roles: [],
   loading: true,
+  signIn: async () => ({ error: 'Not initialized' }),
+  signUp: async () => ({ error: 'Not initialized' }),
   signOut: async () => {},
   hasRole: () => false,
 });
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<LocalUser | null>(null);
   const [session, setSession] = useState<Session | null>(null);
-  const [profile, setProfile] = useState<AuthContextType['profile']>(null);
+  const [profile, setProfile] = useState<LocalProfile | null>(null);
   const [roles, setRoles] = useState<AppRole[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        setTimeout(() => {
-          fetchProfile(session.user.id);
-          fetchRoles(session.user.id);
-        }, 0);
-      } else {
-        setProfile(null);
-        setRoles([]);
-      }
-      setLoading(false);
-    });
-
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        fetchProfile(session.user.id);
-        fetchRoles(session.user.id);
-      }
-      setLoading(false);
-    });
-
-    return () => subscription.unsubscribe();
+    const local = getLocalSession();
+    if (local) {
+      setUser(local.user);
+      setProfile(local.profile);
+      setRoles(local.roles);
+      setSession({ userId: local.user.id });
+    }
+    setLoading(false);
   }, []);
 
-  async function fetchProfile(userId: string) {
-    const { data } = await supabase.from('profiles').select('full_name, phone, department').eq('user_id', userId).maybeSingle();
-    if (data) setProfile(data);
-  }
+  const signIn: AuthContextType['signIn'] = async ({ email, password, role }) => {
+    const result = signInLocal({ email, password, role });
+    if (!result.ok) return { error: result.error };
 
-  async function fetchRoles(userId: string) {
-    const { data } = await supabase.from('user_roles').select('role').eq('user_id', userId);
-    if (data) setRoles(data.map((r) => r.role));
-  }
+    setUser(result.user);
+    setProfile(result.profile);
+    setRoles(result.roles);
+    setSession({ userId: result.user.id });
+    return { error: null };
+  };
+
+  const signUp: AuthContextType['signUp'] = async ({ email, password, fullName, phone }) => {
+    const result = signUpLocal({ email, password, fullName, phone });
+    if (!result.ok) return { error: result.error };
+    return { error: null };
+  };
 
   const signOut = async () => {
-    await supabase.auth.signOut();
+    clearLocalSession();
     setUser(null);
     setSession(null);
     setProfile(null);
@@ -82,7 +81,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const hasRole = (role: AppRole) => roles.includes(role);
 
   return (
-    <AuthContext.Provider value={{ user, session, profile, roles, loading, signOut, hasRole }}>
+    <AuthContext.Provider value={{ user, session, profile, roles, loading, signIn, signUp, signOut, hasRole }}>
       {children}
     </AuthContext.Provider>
   );
