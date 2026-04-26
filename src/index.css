@@ -190,6 +190,8 @@
   .status-review { @apply bg-warning/10 text-amber-600 dark:text-amber-400 border border-warning/25 font-medium; }
   .status-progress { @apply bg-primary/10 text-primary border border-primary/25 font-medium; }
   .status-resolved { @apply bg-secondary/10 text-secondary border border-secondary/25 font-medium; }
+  .status-reopened { @apply bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/25 font-medium; }
+  .status-rejected { @apply bg-destructive/10 text-destructive border border-destructive/25 font-medium; }
   .status-closed { @apply bg-muted text-muted-foreground border border-border font-medium; }
 
   /* Blinking dot for active statuses */
