@@ -20,10 +20,12 @@ import {
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 import DashboardSidebar from "@/components/layout/DashboardSidebar";
 import StatusBadge from "@/components/grievance/StatusBadge";
 import { statusLabels } from "@/lib/mock-data";
-import { getCitizenGrievanceDetail, getCitizenGrievances } from "@/lib/api/citizen";
+import { getCitizenGrievanceDetail, getCitizenGrievances, closeCitizenGrievance, reopenCitizenGrievance } from "@/lib/api/citizen";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -203,6 +205,11 @@ export default function CitizenWorkspace() {
       .map((att) => att.file_url);
   }, [selectedGrievance]);
 
+  const grievanceStatusToken = (selectedGrievance?.status || "").toString().toLowerCase();
+  const grievanceStatusNormalized = normalizeStatus(grievanceStatusToken);
+  const isResolvedStatus = grievanceStatusToken === "resolved" || grievanceStatusToken.includes("resolv") || grievanceStatusNormalized === "resolved";
+  const isClosedStatus = grievanceStatusToken === "closed" || grievanceStatusToken.includes("clos") || grievanceStatusNormalized === "closed";
+
   const handleTrackByTicket = () => {
     const query = ticketQuery.trim().toLowerCase();
     if (!query) return;
@@ -225,6 +232,51 @@ export default function CitizenWorkspace() {
     navigator.clipboard
       .writeText(selectedGrievance.ticket_id)
       .then(() => toast({ title: "Copied", description: "Ticket ID copied to clipboard." }));
+  };
+
+  const [showReopenModal, setShowReopenModal] = useState(false);
+  const [reopenFeedback, setReopenFeedback] = useState("");
+  const [actionLoading, setActionLoading] = useState(false);
+
+  const handleClose = async () => {
+    if (!selectedGrievance) return;
+    setActionLoading(true);
+    try {
+      const updated = await closeCitizenGrievance(selectedGrievance.id);
+      // update detail and tickets
+      setDetail((d) => (d ? { ...d, grievance: updated } : { grievance: updated }));
+      setTickets((list) => list.map((t) => (String(t.id) === String(updated.id) ? updated : t)));
+      toast({ title: "Grievance closed", description: "Status updated to CLOSED." });
+    } catch (err) {
+      toast({ title: "Action failed", description: err.message || "Unable to close grievance.", variant: "destructive" });
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleReopen = () => {
+    setReopenFeedback("");
+    setShowReopenModal(true);
+  };
+
+  const submitReopen = async () => {
+    if (!selectedGrievance) return;
+    if (!reopenFeedback || reopenFeedback.trim().length < 5) {
+      toast({ title: "Please provide feedback", description: "Feedback must be at least 5 characters.", variant: "destructive" });
+      return;
+    }
+    setActionLoading(true);
+    try {
+      const updated = await reopenCitizenGrievance(selectedGrievance.id, { feedback: reopenFeedback.trim() });
+      setDetail((d) => (d ? { ...d, grievance: updated } : { grievance: updated }));
+      setTickets((list) => list.map((t) => (String(t.id) === String(updated.id) ? updated : t)));
+      setShowReopenModal(false);
+      toast({ title: "Grievance reopened", description: "Status updated to REOPENED." });
+    } catch (err) {
+      toast({ title: "Action failed", description: err.message || "Unable to reopen grievance.", variant: "destructive" });
+    } finally {
+      setActionLoading(false);
+    }
   };
 
   return (
@@ -416,6 +468,23 @@ export default function CitizenWorkspace() {
                             <p className="text-xs text-muted-foreground mt-1 max-w-[250px] mx-auto leading-relaxed">
                               This grievance is <strong className="uppercase text-foreground/80">{normalizeStatus(selectedGrievance.status).replace("-", " ")}</strong>. Keep checking this space for updates.
                             </p>
+                            <div className="mt-4 flex items-center justify-center gap-3">
+                              {isResolvedStatus && (
+                                <>
+                                  <Button size="sm" className="bg-emerald-600 text-white" onClick={handleClose} disabled={actionLoading}>
+                                    Close Grievance
+                                  </Button>
+                                  <Button size="sm" variant="outline" onClick={handleReopen} disabled={actionLoading}>
+                                    Reopen Grievance
+                                  </Button>
+                                </>
+                              )}
+                              {isClosedStatus && (
+                                <Button size="sm" variant="outline" onClick={handleReopen} disabled={actionLoading}>
+                                  Reopen Grievance
+                                </Button>
+                              )}
+                            </div>
                           </div>
                         </div>
 
@@ -576,6 +645,21 @@ export default function CitizenWorkspace() {
           </div>
         </div>
       </main>
+      {showReopenModal && (
+        <div className="fixed inset-0 z-[9999] bg-black/40 flex items-center justify-center p-4">
+          <div className="w-full max-w-xl">
+            <div className="elevated-card p-6" onClick={(e) => e.stopPropagation()}>
+              <h3 className="font-heading font-bold text-lg mb-2">Why are you reopening?</h3>
+              <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2 block">Feedback (required)</Label>
+              <Textarea className="min-h-[120px] mb-4" placeholder="Describe why this issue needs to be reopened..." value={reopenFeedback} onChange={(e) => setReopenFeedback(e.target.value)} />
+              <div className="flex items-center justify-end gap-2">
+                <Button variant="outline" onClick={() => setShowReopenModal(false)}>Cancel</Button>
+                <Button onClick={submitReopen} disabled={actionLoading}>Submit Reopen</Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

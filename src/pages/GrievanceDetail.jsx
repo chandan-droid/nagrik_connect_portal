@@ -90,6 +90,8 @@ function GrievanceDetail() {
   const [userRating, setUserRating] = useState(0);
   const [feedbackText, setFeedbackText] = useState("");
   const [feedbackSubmitted, setFeedbackSubmitted] = useState(false);
+  const [showReopenModal, setShowReopenModal] = useState(false);
+  const [reopenFeedback, setReopenFeedback] = useState("");
   const [expandedImage, setExpandedImage] = useState(null);
   const { toast } = useToast();
   useEffect(() => {
@@ -144,11 +146,21 @@ function GrievanceDetail() {
       toast({ title: "Action failed", description: error.message || "Unable to close grievance.", variant: "destructive" });
     }
   };
-  const handleReopen = async () => {
+  const handleReopen = () => {
+    setReopenFeedback("");
+    setShowReopenModal(true);
+  };
+
+  const submitReopen = async () => {
     if (!grievance) return;
+    if (!reopenFeedback || reopenFeedback.trim().length < 5) {
+      toast({ title: "Please provide feedback", description: "Feedback must be at least 5 characters.", variant: "destructive" });
+      return;
+    }
     try {
-      const updated = await reopenCitizenGrievance(grievance.id);
+      const updated = await reopenCitizenGrievance(grievance.id, { feedback: reopenFeedback.trim() });
       setGrievance(updated);
+      setShowReopenModal(false);
       toast({ title: "Grievance reopened", description: "Status updated to REOPENED." });
     } catch (error) {
       toast({ title: "Action failed", description: error.message || "Unable to reopen grievance.", variant: "destructive" });
@@ -374,31 +386,56 @@ function GrievanceDetail() {
         ] })
       ] }) })
     ] }),
-    /* @__PURE__ */ jsx(AnimatePresence, { children: expandedImage && /* @__PURE__ */ jsxs(
-      motion.div,
-      {
-        initial: { opacity: 0 },
-        animate: { opacity: 1 },
-        exit: { opacity: 0 },
-        className: "fixed inset-0 z-[9999] bg-background/95 backdrop-blur-md flex items-center justify-center p-4 md:p-8",
-        onClick: () => setExpandedImage(null),
-        children: [
-          /* @__PURE__ */ jsx("button", { className: "absolute top-6 right-6 p-2 rounded-full bg-muted/50 text-foreground hover:bg-destructive hover:text-white transition-colors", onClick: () => setExpandedImage(null), children: /* @__PURE__ */ jsx(X, { className: "w-6 h-6" }) }),
-          /* @__PURE__ */ jsx(
-            motion.img,
-            {
-              initial: { scale: 0.9, y: 20 },
-              animate: { scale: 1, y: 0 },
-              exit: { scale: 0.9, y: 20 },
-              src: expandedImage,
-              alt: "Expanded evidence",
-              className: "max-w-full max-h-full object-contain rounded-lg shadow-2xl",
-              onClick: (e) => e.stopPropagation()
-            }
-          )
-        ]
-      }
-    ) })
+    /* @__PURE__ */ jsx(AnimatePresence, { children: [
+      showReopenModal && /* @__PURE__ */ jsxs(
+        motion.div,
+        {
+          key: "reopen-modal",
+          initial: { opacity: 0 },
+          animate: { opacity: 1 },
+          exit: { opacity: 0 },
+          className: "fixed inset-0 z-[9998] bg-background/75 backdrop-blur-sm flex items-center justify-center p-4 md:p-8",
+          onClick: () => setShowReopenModal(false),
+          children: [
+            /* @__PURE__ */ jsx("div", { className: "relative w-full max-w-xl", children: /* @__PURE__ */ jsxs("div", { className: "elevated-card p-6 md:p-8", onClick: (e) => e.stopPropagation(), children: [
+              /* @__PURE__ */ jsxs("h3", { className: "font-heading font-bold text-lg text-foreground mb-3", children: ["Why are you reopening?"] }),
+              /* @__PURE__ */ jsx(Label, { className: "text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2 block", children: "Feedback (required)" }),
+              /* @__PURE__ */ jsx(Textarea, { className: "min-h-[120px] mb-4", placeholder: "Describe why this issue needs to be reopened...", value: reopenFeedback, onChange: (e) => setReopenFeedback(e.target.value) }),
+              /* @__PURE__ */ jsxs("div", { className: "flex items-center gap-2 justify-end", children: [
+                /* @__PURE__ */ jsx(Button, { variant: "outline", onClick: () => setShowReopenModal(false), children: "Cancel" }),
+                /* @__PURE__ */ jsx(Button, { onClick: submitReopen, children: "Submit Reopen" })
+              ] })
+            ] }) }),
+          ]
+        }
+      ),
+      expandedImage && /* @__PURE__ */ jsxs(
+        motion.div,
+        {
+          key: "expanded-image",
+          initial: { opacity: 0 },
+          animate: { opacity: 1 },
+          exit: { opacity: 0 },
+          className: "fixed inset-0 z-[9999] bg-background/95 backdrop-blur-md flex items-center justify-center p-4 md:p-8",
+          onClick: () => setExpandedImage(null),
+          children: [
+            /* @__PURE__ */ jsx("button", { className: "absolute top-6 right-6 p-2 rounded-full bg-muted/50 text-foreground hover:bg-destructive hover:text-white transition-colors", onClick: () => setExpandedImage(null), children: /* @__PURE__ */ jsx(X, { className: "w-6 h-6" }) }),
+            /* @__PURE__ */ jsx(
+              motion.img,
+              {
+                initial: { scale: 0.9, y: 20 },
+                animate: { scale: 1, y: 0 },
+                exit: { scale: 0.9, y: 20 },
+                src: expandedImage,
+                alt: "Expanded evidence",
+                className: "max-w-full max-h-full object-contain rounded-lg shadow-2xl",
+                onClick: (e) => e.stopPropagation()
+              }
+            )
+          ]
+        }
+      )
+    ] })
   ] });
 }
 export {

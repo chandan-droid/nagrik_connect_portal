@@ -105,7 +105,9 @@ export async function closeCitizenGrievance(id) {
   return normalizeGrievance(response.data || {});
 }
 
-export async function reopenCitizenGrievance(id) {
-  const response = await apiRequest(`/citizen/grievances/${id}/reopen`, { method: "POST" });
+export async function reopenCitizenGrievance(id, payload = null) {
+  const options = { method: "POST" };
+  if (payload) options.body = JSON.stringify(payload);
+  const response = await apiRequest(`/citizen/grievances/${id}/reopen`, options);
   return normalizeGrievance(response.data || {});
 }
