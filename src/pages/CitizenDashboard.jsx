@@ -522,25 +522,7 @@ export default function CitizenDashboard() {
             </Link>
           </div>
 
-          {/* Quick Track by Ticket */}
-          <div className="bg-card border border-border/60 rounded-2xl p-4">
-            <div className="flex gap-2">
-              <Input
-                className="h-9 text-sm flex-1"
-                placeholder="Track by Ticket ID..."
-                value={ticketQuery}
-                onChange={(e) => setTicketQuery(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && handleTrackByTicket()}
-              />
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={handleTrackByTicket}
-              >
-                <Search className="w-3.5 h-3.5" />
-              </Button>
-            </div>
-          </div>
+         
 
           {/* Main Workspace Grid */}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 min-h-[640px]">
